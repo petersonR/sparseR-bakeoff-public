@@ -1,0 +1,83 @@
+---
+title: 'Appendix to: Can a Transparent Machine Learning Algorithm Predict Better than Its Black-Box Counterparts? 
+  A Benchmarking Study using 110 Diverse Datasets '
+output: pdf_document
+template: appendix-template.tex
+header-includes:
+  - \renewcommand{\thetable}{A\arabic{table}}
+  - \renewcommand{\thefigure}{A\arabic{figure}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(gtsummary)
+library(kableExtra)
+library(sparseR)
+library(dplyr)
+
+results_cont <- readRDS(here("DataProcessed/03-Reg-Results.RDS"))
+results_cat <- readRDS(here("DataProcessed/04-Cat-Results.RDS"))
+
+```
+
+# Supplemental Table
+
+```{r tabs1, echo = FALSE}
+tab1 <- results_cont$dfListReg$`556_analcatdata_apnea2` |>
+  tbl_summary() |>
+  modify_header(label = "Variable") |>
+  modify_footnote(everything() ~ NA)
+
+
+tab2 <- results_cont$dfListReg$`557_analcatdata_apnea1` |>
+  tbl_summary() |>
+  modify_header(label = "Variable")|>
+  modify_footnote(everything() ~ NA)
+
+
+tbl_merge(list(tab1, tab2), 
+                     tab_spanner = c("Apnea 2", "Apnea 1")) |>
+  as_kable_extra(booktabs = TRUE, longtable = TRUE, linesep = "", 
+                            escape = FALSE, addtl_fmt = TRUE, 
+                            caption = "Descriptive statistics including median and interquartile range for the sleep apnea data sets.") %>% 
+  kable_minimal(full_width = FALSE)
+```
+
+The table above contains summary information on all of the variables in the data sets called `analcatdata_apnea1` and `analcatdata_apnea2`. The variables called `Scorer_1`, `Subject`, and `target` were shared across these two data sets. `Subject` refers to subject-specific identifiers but is treated as a numeric variable by default by all methods. 
+
+# Code and output from `sparseR` for example
+
+The code below uses the  `analcatdata_apnea2` data set from the PMLB and models them with the SRL setting `filter = "zv"`, as described in our main manuscript. The reader is encouraged to confirm this solution works similarly with the `analcatdata_apnea1` data set. 
+
+```{r, echo = TRUE, eval = FALSE}
+set.seed(1233)
+(srl <- sparseR(target ~ ., data = analcatdata_apnea2, filter = "zv"))
+```
+
+```{r, message = FALSE, echo = FALSE}
+df <- results_cont$dfListReg$`556_analcatdata_apnea2`
+set.seed(1233)
+
+srl <- df |> 
+    rename(`Odds of occurence` = target) |> 
+    sparseR(`Odds of occurence` ~ ., data = _, filter = "zv")
+
+srl
+```
+
+```{r, include = FALSE}
+df2 <- results_cont$dfListReg$`557_analcatdata_apnea1`
+
+set.seed(1233)
+srl2 <- df2 |> 
+    rename(`Odds of occurence` = target) |> 
+    sparseR(`Odds of occurence` ~ ., data = _, filter = "zv")
+
+srl2
+summary(srl2, at = "cv1se")
+```
+
+```{r, echo = TRUE}
+summary(srl, at = "cv1se")
+```
