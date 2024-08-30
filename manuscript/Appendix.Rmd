@@ -1,15 +1,17 @@
 ---
 title: 'Appendix to: Can a Transparent Machine Learning Algorithm Predict Better than Its Black-Box Counterparts? 
-  A Benchmarking Study using 110 Diverse Datasets '
+  A Benchmarking Study using 110 Datasets'
 output: pdf_document
 template: appendix-template.tex
 header-includes:
-  - \renewcommand{\thetable}{A\arabic{table}}
-  - \renewcommand{\thefigure}{A\arabic{figure}}
+  - \renewcommand{\thetable}{S\arabic{table}}
+  - \renewcommand{\thefigure}{S\arabic{figure}}
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library(here)
 library(gtsummary)
 library(kableExtra)
@@ -21,34 +23,109 @@ results_cat <- readRDS(here("DataProcessed/04-Cat-Results.RDS"))
 
 ```
 
-# Supplemental Table
+# Supplemental Tables
 
-```{r tabs1, echo = FALSE}
+```{r tabs1}
+tab1 <- data.frame(
+  Algorithm = c("Random Forest", "Neural Network", "XGBoost", " ", "Support Vector Machines", "Lasso", "Sparsity-Ranked Lasso"),
+  Package = c("\\texttt{randomForest}*", "\\texttt{nnet}*", "\\texttt{xgboost}*", " ", "\\texttt{kernlab}*", "\\texttt{sparseR}", "\\texttt{sparseR}"), 
+  `Tuning Parameters` = c(
+    "$p \\in \\{1, 2, ..., \\}$; maximum depth $ \\in \\{2, 3, 4\\}$",
+    "number of hidden units $\\in \\{1, 2, ..., 5\\}$; decay $\\in \\{0, 10^{-1}, ..., 10^{-4}\\}$",
+    "maximum depth $ \\in \\{1, 2, 3\\}$; maximum iterations $ \\in \\{50, 100, 150\\}$;", 
+    "$\\eta \\in \\{0.3, 0.4\\}$; subsample ratio $\\in \\{0.5, 0.75, 1\\}$",
+    "C (cost)=1", 
+    "$\\lambda \\in (0, \\infty)$",
+    "$\\lambda \\in (0, \\infty)$; \\texttt{k} = 1; \\texttt{poly} = 2"
+  ), 
+  check.names = FALSE
+)
+tab1 %>% 
+  kable(format = "latex", 
+         booktabs = TRUE, linesep = "", escape = FALSE,
+        caption = "Model specification in R.") %>% 
+  kable_minimal(full_width = FALSE) %>% 
+  footnote(general = "*\\\\texttt{caret} used as wrapping package which specifies defaults listed.", escape = FALSE)
+```
+
+\pagebreak
+
+Note: In the tables that follow describing specific Penn Machine Learning Benchmarks (PMLB) data sets, we adhere to the capitalization and naming conventions of each specific data set (variable names are not modified in tables or captions). Additional descriptions as well as source citations for these data sets (if available) are included in Section 3.3 of the main manuscript. Please note that these tables present our pre-processed versions of the data sets (with the processing steps outlined in Section 2.4 of the main manuscript), so they may not align perfectly with the data sets as downloaded from the PMLB. 
+
+```{r tabs2}
+results_cont$dfListReg$`503_wind` |> 
+  tbl_summary() |>
+  as_kable_extra(booktabs = TRUE, longtable = TRUE, linesep = "",
+                 escape = FALSE, addtl_fmt = TRUE,
+                 caption = "Descriptive statistics including median and interquartile range for the 503\\_wind data set.")
+
+```
+
+\pagebreak
+
+
+```{r tabs3}
+results_cat$dfListCat$hungarian |> 
+  tbl_summary(by = target) |>
+  as_kable_extra(booktabs = TRUE, longtable = TRUE, linesep = "",
+                 escape = FALSE, addtl_fmt = TRUE,
+                 caption = "Descriptive statistics including medians and interquartile ranges for numeric variables and counts/percentages for categorical variables for the Hungarian data set, stratified by the classification target, which takes values of 0 or 1.") %>% 
+  row_spec(0, bold = TRUE)
+
+```
+
+\pagebreak
+
+```{r tabs4, echo = FALSE}
 tab1 <- results_cont$dfListReg$`556_analcatdata_apnea2` |>
   tbl_summary() |>
-  modify_header(label = "Variable") |>
-  modify_footnote(everything() ~ NA)
+  modify_header(label = "Variable") 
 
 
 tab2 <- results_cont$dfListReg$`557_analcatdata_apnea1` |>
   tbl_summary() |>
-  modify_header(label = "Variable")|>
-  modify_footnote(everything() ~ NA)
+  modify_header(label = "Variable")
 
 
 tbl_merge(list(tab1, tab2), 
                      tab_spanner = c("Apnea 2", "Apnea 1")) |>
   as_kable_extra(booktabs = TRUE, longtable = TRUE, linesep = "", 
                             escape = FALSE, addtl_fmt = TRUE, 
-                            caption = "Descriptive statistics including median and interquartile range for the sleep apnea data sets.") %>% 
-  kable_minimal(full_width = FALSE)
+                            caption = "Descriptive statistics including medians and interquartile ranges for numeric variables and counts/percentages for categorical variables in the sleep apnea data sets.") %>% 
+  kable_minimal(full_width = FALSE) 
 ```
 
-The table above contains summary information on all of the variables in the data sets called `analcatdata_apnea1` and `analcatdata_apnea2`. The variables called `Scorer_1`, `Subject`, and `target` were shared across these two data sets. `Subject` refers to subject-specific identifiers but is treated as a numeric variable by default by all methods. 
+The table above contains summary information on all of the variables in the data sets called `analcatdata_apnea1` and `analcatdata_apnea2`. The variables called `Scorer_1`, `Subject`, and `target` were shared across these two data sets. `Subject` refers to subject-specific identifiers but is treated as a numeric variable by default by all methods. This may seem like a questionable decision. However, we decided adhering to the default was the most appropriate way to handle the variable due to the nature of setting up the experiment as a bakeoff; we could not have any special rules for variables based on their name being something similar to "Subject". 
 
-# Code and output from `sparseR` for example
+\pagebreak
 
-The code below uses the  `analcatdata_apnea2` data set from the PMLB and models them with the SRL setting `filter = "zv"`, as described in our main manuscript. The reader is encouraged to confirm this solution works similarly with the `analcatdata_apnea1` data set. 
+```{r tabs5}
+results_cat$dfListCat$`parity5+5` |> 
+  tbl_summary(by = "target") |>
+  as_kable_extra(booktabs = TRUE, longtable = TRUE, linesep = "",
+                 escape = FALSE, addtl_fmt = TRUE,
+                 caption = "Descriptive statistics including counts and percentages for the parity5+5 data set, stratified by the classification target which takes values of 0 or 1.") %>% 
+  row_spec(0, bold = TRUE)
+```
+
+
+\pagebreak
+
+```{r tabs6}
+results_cat$dfListCat$analcatdata_boxing1 |> 
+  tbl_summary(by = "target") |>
+  as_kable_extra(booktabs = TRUE, longtable = TRUE, linesep = "",
+                 escape = FALSE, addtl_fmt = TRUE,
+                 caption = "Descriptive statistics including including medians and interquartile ranges for the numeric variable and counts/percentages for the categorical variable for the analcatdata\\_boxing1 data set, stratified by the classification target which takes values of 0 or 1.") %>% 
+  row_spec(0, bold = TRUE)
+```
+
+
+\pagebreak
+
+# Example Code and Output from `sparseR` 
+
+The code below uses the  `analcatdata_apnea2` data set from the PMLB and models the data with the SRL setting `filter = "zv"`, as described in our main manuscript. The reader is encouraged to confirm this solution works similarly with the `analcatdata_apnea1` data set. 
 
 ```{r, echo = TRUE, eval = FALSE}
 set.seed(1233)

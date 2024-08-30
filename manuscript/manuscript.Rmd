@@ -1,7 +1,7 @@
 ---
 title: | 
   Can a Transparent Machine Learning Algorithm Predict Better than Its Black-Box Counterparts? 
-  A Benchmarking Study using 110 Diverse Datasets 
+  A Benchmarking Study using 110 Data Sets 
 author:
   - name: Ryan A. Peterson
     affil: 1,*
@@ -39,7 +39,7 @@ status: submit
 simplesummary: |
   A predictive model bakeoff between transparent and black-box methods.
 abstract: |
-  We developed a novel machine learning (ML) algorithm with the goal of producing transparent models (i.e. understandable-by-humans) while also flexibly accounting for nonlinearity and interactions. Our method is based on ranked sparsity, and allows for flexibility and user-control in varying the shade of the opacity of black-box machine learning methods. The main tenet of ranked sparsity is that an algorithm should be more skeptical of higher-order polynomials and interactions \textit{a~priori} compared to main effects, and hence the inclusion of these more complex terms should require a higher level of evidence. In this work, we put our new ranked sparsity algorithm (as implemented in the open-source R package, `sparseR`) to the test in a predictive model "bakeoff" (i.e. a benchmarking study of ML algorithms applied "out-of-the-box," that is, with no special tuning). Algorithms were trained on a diverse set of simulated and real-world data sets from the Penn Machine Learning Benchmarks database, addressing both regression and binary classification problems. We evaluate the extent to which our human-centered algorithm can attain predictive accuracy that rivals popular black-box approaches such as neural networks, random forests, and support vector machines, while also producing more interpretable models. Using out-of-bag error as a meta-outcome, we describe the properties of data sets in which human-centered approaches can perform as well as or better than black-box approaches. We find that interpretable approaches predicted optimally or within 5% of the optimal method in most real-world data sets. We provide a more in-depth comparison of the performances of random forests to interpretable methods for several case studies, including exemplars in which algorithms performed similarly, and several cases when interpretable methods underperformed. This work provides a strong rationale for including human-centered transparent algorithms such as ours in predictive modeling applications. 
+  We developed a novel machine learning (ML) algorithm with the goal of producing transparent models (i.e. understandable-by-humans) while also flexibly accounting for nonlinearity and interactions. Our method is based on ranked sparsity, and allows for flexibility and user-control in varying the shade of the opacity of black-box machine learning methods. The main tenet of ranked sparsity is that an algorithm should be more skeptical of higher-order polynomials and interactions \textit{a~priori} compared to main effects, and hence the inclusion of these more complex terms should require a higher level of evidence. In this work, we put our new ranked sparsity algorithm (as implemented in the open-source R package, `sparseR`) to the test in a predictive model "bakeoff" (i.e. a benchmarking study of ML algorithms applied "out-of-the-box," that is, with no special tuning). Algorithms were trained on a large set of simulated and real-world data sets from the Penn Machine Learning Benchmarks database, addressing both regression and binary classification problems. We evaluate the extent to which our human-centered algorithm can attain predictive accuracy that rivals popular black-box approaches such as neural networks, random forests, and support vector machines, while also producing more interpretable models. Using out-of-bag error as a meta-outcome, we describe the properties of data sets in which human-centered approaches can perform as well as or better than black-box approaches. We find that interpretable approaches predicted optimally or within 5% of the optimal method in most real-world data sets. We provide a more in-depth comparison of the performances of random forests to interpretable methods for several case studies, including exemplars in which algorithms performed similarly, and several cases when interpretable methods underperformed. This work provides a strong rationale for including human-centered transparent algorithms such as ours in predictive modeling applications. 
 keywords: |
   model selection; feature selection; lasso; explainable machine learning
 acknowledgement: |
@@ -73,6 +73,8 @@ abbreviations:
     long: Cross validation
   - short: SD
     long: Standard deviation
+  - short: LAD
+    long: Logical Analysis of Data
 bibliography: mybibfile.bib
 # appendix: appendix.tex
 endnotes: false
@@ -81,6 +83,7 @@ header-includes:
 output: 
   rticles::mdpi_article:
     extra_dependencies: longtable
+    citation_package: natbib
 ---
 
 ```{r setup, include = FALSE}
@@ -123,7 +126,7 @@ metadataList <- readRDS(here("DataProcessed/01-Metadata-List.RDS"))
 <!-- keep the introduction comprehensible to scientists outside your particular -->
 <!-- field of research.  -->
 
-If accurate prediction is the goal, it is a commonly thought that a model need not be traditionally 
+If accurate prediction is the goal, it is a commonly held thought that a model need not be traditionally 
 interpretable. On the contrary, if it helps prediction, the predictors should be allowed to interact freely and 
 associate with the outcome nonlinearly in unfathomable ways. After all, who are we humans to impart our will that a
 predictive model's inner-workings be understandable? 
@@ -157,7 +160,10 @@ perform comparably to black-box alternatives.
 Our paper is organized as follows. We first provide a brief overview of the SRL and related 
 methodologies as well as a description of the black-box methods we will use
 for comparison. We then describe the benefits of transparent approaches over
-black-box approaches from a variety of perspectives. In our results section, we
+black-box approaches from a variety of perspectives, and set the stage for the 
+experimental comparison of all algorithms applied to 110 data sets from the PMLB, which contain
+a mix of numeric outcomes (regression tasks) and binary outcomes (classification tasks). 
+In our results section, we
 describe the data set characteristics and present our model performance both overall
 and then diving deeper in several illustrative case studies. We conclude with a discussion
 of our findings in context, describing limitations and suggestions for future work. 
@@ -187,7 +193,7 @@ can turn any medium-dimensional problem into an exceptionally high-dimensional o
 Even if we restrict these derived variables to include only pairwise interactions or 
 polynomials of existing features, the number of candidate variables grows combinatorically
 with the number of features, $p$. Therefore, we developed a high-dimensional solution
-to this problem: the sparsity ranked lasso. 
+to this problem: the sparsity ranked lasso (SRL). 
 
 The SRL was developed as an algorithm based on the Bayesian interpretation of
 the lasso [@tibs1996] to favor transparent models (i.e. models with fewer
@@ -205,12 +211,15 @@ zero, and the nature of the discontinuity in the penalization renders some estim
 exactly zero, inherently deselecting them from the model. The lasso and the SRL are
 both typically tuned using model selection criteria or cross-validation. 
 
-The SRL initially resembles the adaptive lasso [@zou2006adaptive], using penalty weights $w_j$ to increase the penalization (in other words, skepticism) for columns of $X$ corresponding to interactions and polynomials, which (if selected) would render the model more opaque. We have shown that setting $w_j=\sqrt {p_j}$ for all $j$, where $p_j$ represents the size of the set of covariates, calibrates the prior information contributed by the collection of interactions to be equal to that of the collection of main effects, while also naturally inducing skepticism (higher penalties) on interactions without having to tune additional hyperparameters. The SRL is currently implemented in the `sparseR` R package available on the Comprehensive R Archive Network (CRAN). The SRL can successfully sift through a large, *high-dimensional* set of possible interactions and polynomials while still preferring transparency, in contrast to alternative methods which tend to over-select interactions and higher-order polynomials [@srlpaper;@peterson2019ranked].  The log-likelihood loss function replaces the least-squares term in the above equation when the outcome is non-Gaussian. 
-
+The SRL initially resembles the adaptive lasso [@zou2006adaptive], using penalty weights $w_j$ to increase the penalization (in other words, skepticism) for some columns of $X$
+ and to decrease it for others. In the SRL's default implementation, the set of supplied covariates (denoted as $A$ and henceforth considered "main effects") gets supplemented with all of the pairwise interactions ($B$) and second-order polynomials ($C$) as additional columns such that $X = \left[A\ \ B\ \ C\right]$. Without special attention to the relative differences in the size and complexity of these interactions and polynomials in the penalization, the lasso selects too many interactions and polynomials (which renders the model unnecessarily opaque). We have shown that setting $w_j=\sqrt {p_j}$ for all $j$, where $p_j$ represents the size of the set of covariates, calibrates the prior information contributed by the collection of interactions to be equal to that of the collection of main effects, while also naturally inducing skepticism (higher penalties) on interactions without having to tune additional hyperparameters. For polynomial penalization, a slightly modified penalty weight is used based on the cumulative dimension size; see @srlpaper for further details. The SRL is currently implemented in the `sparseR` R package available on the Comprehensive R Archive Network (CRAN). The SRL can successfully sift through a large, *high-dimensional* set of possible interactions and polynomials while still preferring transparency, in contrast to alternative methods which tend to over-select interactions and higher-order polynomials [@srlpaper;@peterson2019ranked]. The \texttt{k} and \texttt{poly} arguments to the \texttt{sparseR} function allow the user to tune the maximum order interaction and polynomial, respectively; these values default to \texttt{k} = 1 (all pair    wise interactions) and \texttt{poly} = 2 for up-to-second order polynomials. The log-likelihood loss function replaces the least-squares term in the above equation when the outcome is non-Gaussian. 
+ 
+\textcolor{black}{In} @srlpaper \textcolor{black}{, we used extensive simulation studies to characterize the properties of the SRL, comparing SRL to state-of-the-art competitors for the selection of interactions and polynomials, focusing on predictive accuracy and false discovery rates in the context of generating models that have varying number of ``true" nonlinear effects (polynomials/interactions). Our results indicated the SRL was superlative in settings where true models were sparse in terms of nonlinear/interacting effects, and especially when no such effects existed. In the high-dimensional setting where we expect many null relationships, this property is highly advantageous. Further, the strong performance of the SRL was found to hold under varied settings with respect to the correlation structure of the covariates. However, comparing SRL to smoothing splines in lower dimensional settings, we found the performance to be less favorable when the nonlinear effects could not be well-approximated by polynomials, and when the covariates were highly skewed in distribution (though normalization of skewed covariates partially mitigated the latter issue). In related work, we extended the SRL to time series data, showing via extensive simulations that the SRL could outperform alternatives in settings with complex  autoregressive structures or high-dimensional exogenous features }[@fastts]\textcolor{black}{. An additional contribution of these simulations was to show that in addition to finding well-predicting transparent models, the SRL is often computationally quicker than alternatives.} 
+ 
 ## Black-box algorithms
 
-In this work we primarily utilize the black-box supervised learning algorithms briefly described in this section. Random forest algorithms [@breiman2001random] are an ensemble-based learning method for continuous and categorical endpoints. They operate by constructing many candidate decision trees using bootstrapped and sub-sampled training data, predicting the outcome as the mode of the classes (classification) or mean prediction (regression) of the individual trees. Whereas individual trees (weak learners) may over- or under-fit the training data, using an ensemble improves predictions by averaging multiple decision trees. Support Vector Machines (SVMs) [@cortes1995support] work by finding the hyperplane that best separates observations in the feature space. SVMs are effective in high-dimensional spaces and are particularly useful for cases where the number of features exceeds the number of observations. Extreme Gradient Boosting (XGBoost) [@chen2016xgboost] is an efficient implementation of the gradient boosting framework. Similarly to random forests, XGboost builds an ensemble of trees, except it does so in a sequential manner, where each tree tries to correct the errors of the previous one. XGBoost also incorporates regularization to prevent overfitting. Neural networks [@rfsInR;@Goodfellow-et-al-2016] are a set of algorithms inspired by the structure and function of the human brain, designed to recognize patterns. They consist of layers of nodes (neurons) that process input data and pass it through successive layers. Each node assigns weights to its inputs and passes them through an activation function to determine the output. This extremely flexible set-up makes neural networks capable of modeling complex, non-linear relationships.
-They work particularly well at text, image, and speech recognition.
+In this work we primarily utilize the black-box supervised learning algorithms briefly described in this section. Random forest algorithms [@breiman2001random] are an ensemble-based learning method for continuous and categorical endpoints. They operate by constructing many candidate decision trees using bootstrapped and sub-sampled training data, predicting the outcome as the mode of the classes (classification) or mean prediction (regression) of the individual trees. Whereas individual trees (weak learners) may over- or under-fit the training data, using an ensemble improves predictions by averaging multiple decision trees. Support Vector Machines (SVMs) [@cortes1995support] work by finding the hyperplane that best separates observations in the feature space. SVMs are effective in high-dimensional spaces and are particularly useful for cases where the number of features exceeds the number of observations. Extreme Gradient Boosting (XGBoost) [@chen2016xgboost] is an efficient implementation of the gradient boosting framework. Similarly to random forests, XGboost builds an ensemble of trees, except it does so in a sequential manner, where each tree tries to correct the errors of the previous one. XGBoost also incorporates regularization to prevent overfitting. Neural networks are a set of algorithms inspired by the structure and function of the human brain, designed to recognize patterns [@ripley2007pattern]. They consist of layers of nodes (neurons) that process input data and pass it through successive layers. Each node assigns weights to its inputs and passes them through an activation function to determine the output. This extremely flexible set-up makes neural networks capable of modeling complex, non-linear relationships.
+They work particularly well at text, image, and speech recognition. Moreover, a number of different types of architectures have been built for different types of problems, thereby expanding the array of potential applications of the method [@Goodfellow-et-al-2016].
 
 ## Issues with black-box algorithms
 
@@ -222,7 +231,7 @@ Due to their complexity, black-box algorithms can also be difficult to debug or 
 
 Additionally, black-box algorithms are prone to overfitting, and may therefore perform much more effectively in predicting training data than validation data.  Moreover, if the features used to build the algorithm are extracted through an automated search as opposed to scientific knowledge, features that are spuriously associated with the outcome may naturally enter the model. Such features may degrade the quality of the prediction if conditions lead to a disconnection in the association.  For instance, since the flu season generally coincides with the college basketball season, the number of college basketball games played in a given week during the flu season is typically highly correlated with flu incidence during the same week.  However, during atypical flu seasons, such as the 2009 H1N1 pandemic, this association will disappear. 
 
-Our philosophy is that a certain degree of complexity is often warranted for high quality prediction. Yet a model that is primarily based on meaningful, pronounced features, and only incorporates more nuanced and subtle features if the evidence provided by the data is sufficiently compelling to warrant their inclusion, will often be transparent and interpretable. Moreover, we will subsequently show that such a model will generally perform as well as or better than black-box methods that disregard the principle of parsimony and potentially violate Occam’s Razor in a large collection of data sets.     
+Our philosophy is that a certain degree of complexity is often warranted for high quality prediction. Yet a model that is primarily based on meaningful, pronounced features, and only incorporates more nuanced and subtle features if the evidence provided by the data is sufficiently compelling to warrant their inclusion, will often be transparent and interpretable. Moreover, we will subsequently show that such models fit via the SRL or lasso perform as well as or better "out-of-the-box" than a set of popular black-box methods that disregard the principle of parsimony and potentially violate Occam’s Razor in a large collection of data sets.  
 
 ## PMLB processing steps
 
@@ -242,32 +251,43 @@ set, all models were fit and evaluated using the same training and test sets.
 
 ## Modeling procedures
 
-All random forest, SVM, neural network, and XGBoost models were fit using
-10-fold cross-validation (CV) and a grid search to tune hyper-parameters. For
-random forests, values between 2 and _p_, where _p_ is the number of predictors
-for a given data set, were evaluated as candidates for the count of random
-predictors to be used for each split. SVM models were fit using a cost of
-constraints violation of 1. For neural networks, hidden layer sizes from 1 to 5
-and weight decays from 0 to 0.1 were considered during grid search. For XGBoost,
-the grid search considered maximum tree depths of 1 to 3, learning rate from 0.3 to
-0.4, subsampled column ratios of 0.6 to 0.8, boosting iterations from 50 to 150,
-and training subsample ratios of 0.50 to 1. These options represent defaults 
-as specified by the `caret` [@caret], which serves as a wrapping package for the following 
-fitting engines: random forests with `randomForest` [@randomforest], SVMs with `kernlab` [@kernlab], 
-neural networks with `nnet` [@nnet], and XG-boost with `xgboost` [@xgboost]. The `sparseR` package [@srlpaper]
-was used to fit SRL and lasso models with default settings, both of which only include
-a single tuning parameter ($\lambda$) which controls the overall level of penalization 
-and is also tuned via 10-fold CV. The `sparseR` package uses the `ncvreg` package
-as a back-end fitting engine [@ncvreg]. 
+As this experiment is intended to be a bakeoff, in that models 
+are compared "out-of-the-box," algorithms were very minimally tuned.
 
-For continuous endpoints, we tuned all algorithms with CV-based root-mean-squared error (RMSE), and we also 
-computed the CV-based R-squared (its traditional formulation using the sum of squared errors) for evaluation. 
+All random forest, SVM, neural network, and XGBoost models were fit using
+simple}
+10-fold cross-validation (CV) and a grid search to tune hyper-parameters. 
+Black-box methods were fit with the \texttt{caret} [@caret]
+R package, 
+which serves as a wrapping package for the following 
+fitting engines: random forests with \texttt{randomForest} [@randomforest]
+, SVMs with \texttt{kernlab} [@kernlab] 
+, feed-forward neural networks with \texttt{nnet} [@nnet]
+, and XG-boost with \texttt{xgboost} [@xgboost]. 
+The \texttt{caret} package's defaults were used in all cases; these and other tuning parameters are described in Table A1.
+
+The \texttt{sparseR} package [@srlpaper] was used to fit SRL and lasso models. By default, the lasso and the SRL use 10-fold CV to search for an optimal value of a single tuning 
+parameter ($\lambda$), which controls the overall level of penalization. The SRL
+fit with \texttt{sparseR} has two noteworthy additional tuning parameters that can be modified 
+manually: \texttt{k}, which refers to the number of order interactions to consider, 
+and \texttt{poly}, which refers to the maximum order polynomial to consider.  The default
+value for \texttt{k} is 1, which searches among all pairwise interactions. The default value 
+for \texttt{poly} is 2, which searches for up-to order 2 polynomials and thereby allows for 
+limited nonlinearity of features. The \texttt{sparseR} package uses the \texttt{ncvreg} package
+as a back-end fitting engine [@ncvreg]. Further modifications are available; see 
+\texttt{?sparseR} for more detailed documentation.
+
+For numeric outcomes, we tuned all algorithms with CV-based root-mean-squared error (RMSE), and we also computed the CV-based R-squared (its traditional formulation using the sum of squared errors) for evaluation.  RMSE and R-squared measure the aggregate distance between an observation's model-based prediction and its true value. RMSE measures this distance in the same unit as the outcome of interest, while R-squared does so in a unit-less fashion where a value of 0 indicates the model performs identically to predicting the mean value for all observations (i.e., no predictive value of the model), and a value of 1 means perfect prediction.
 Similarly, we computed test-set-based R-squared and RMSE for each combination of algorithm and
 PMLB data set for evaluation. Binary endpoints were tuned using CV-based deviance for the lasso and 
 the SRL (`sparseR`'s default), and CV-based accuracy for methods trained with `caret` (its default). 
+While both binomial deviance and accuracy are meant to assess the quality of a model's predictions,
+the former also considers prediction "confidence" in its computation; a highly confident, yet incorrect, 
+prediction is penalized worse than a less certain, though still incorrect, prediction.
 Binary endpoints were evaluated using the area under the receiver operating characteristic curve (AUC) 
-for each model's predictions on the test set. In some cases, the out-of-bag R-squared estimate was negative; 
-in those instances R-squared was set to zero.
+for each model's predictions on the test set. The AUC quantifies the overall ability
+of the model to classify observations. Models are simpler to compare with AUC than accuracy when classes are imbalanced; a value of 1 indicates perfect prediction, whereas a value of 0.5 indicates that a model is no better than randomly guessing the outcome based on the overall proportion of observations in each class. In some cases, the out-of-bag R-squared estimate was negative; 
+in those instances R-squared was set to zero prior to modeling.
 
 ## Meta-modeling for inference
 
@@ -315,14 +335,14 @@ dataSummary %>%
   modify_footnote(update = everything() ~ NA) %>%
   as_kable_extra(booktabs = TRUE, longtable = TRUE, linesep = "", 
                             escape = FALSE, addtl_fmt = TRUE, 
-                            caption = "Means (standard deviations) of data set characteristics. Class imbalance refers to a measure of class distribution of the target variable, with a value approaching 0 indicating perfectly balanced target classes and a value approaching 1 indicating extreme class imbalance, where nearly all instances belong to one class.") %>% 
+                            caption = "Means (standard deviations) of data set characteristics. Class imbalance refers to a measure of class distribution of the target variable, with a value approaching 0 indicating perfectly balanced target classes and a value approaching 1 indicating extreme class imbalance, where nearly all instances belong to one class. N refers to the number of data sets under study.") %>% 
   kable_minimal(full_width = FALSE)
   
 ```
 
 ## Overall model performance
 
-Descriptive results for model performances are shown in Table 2. For continuous endpoints, the lasso and SRL had the best-performing model for test data in 12.8% and 17.9% of data sets (totaling 30.7%), and the SRL was within 5% out-of-sample predictive accuracy of the best performing model in nearly two thirds of data sets. For binary endpoints, the lasso and SRL performed best in 22.7% and 34.8% of data sets (totaling 57.5%), and the SRL was within 5% of the best model in 69.7% of data sets. The lasso and SRL were generally faster than black-box methods.
+Descriptive results for model performances are shown in Table 2. For continuous endpoints, the lasso and SRL had the best-performing model for test data in 12.8% and 17.9% of data sets (totaling 30.7%), and the SRL was within 5% out-of-sample predictive accuracy of the best performing model in nearly two thirds of data sets. For binary endpoints, the lasso and SRL performed best in 22.7% and 34.8% of data sets (totaling 57.5%), and the SRL was within 5% of the best model in 78.8% of data sets. The lasso and SRL were generally faster than black-box methods.
 
 ```{r tab02}
 results_cont <- readRDS(here("DataProcessed/03-Reg-Results.RDS"))
@@ -440,10 +460,10 @@ tab03c <- tab_cat[1:6, -2]
 
 tab03 <- as.data.frame(cbind(tab03a, tab03b[,-1], tab03c[,-1]))
 
-names(tab03) <- c("Term", rep(c("Estimate (CI)", "p"), 3))
+names(tab03) <- c("Term", rep(c("Estimate (CI)", "p-value"), 3))
 tab03$Term <- c("Intercept", "Lasso", "NN", "RF", "SVM", "XGB")
 tab03 %>%
-  kable(format = "latex", digits = 2, align = "lrrrrrr", caption = "Linear Mixed (Meta) Models. Estimates refer to the expected change in the prediction outcome relative to SRL controlling for data-set-specific prediction difficulty. SRL: sparsity-ranked lasso, NN: neural networks, RF: random forests, SVM: support vector machines, XGB: extreme gradient boosting.",
+  kable(format = "latex", digits = 2, align = "lrrrrrr", caption = "Linear Mixed (Meta) Models. Estimates refer to the expected change in the prediction outcome relative to SRL controlling for data-set-specific prediction difficulty. The intercept term refers to the expected value for the listed measure for the SRL. SRL: sparsity-ranked lasso, NN: neural networks, RF: random forests, SVM: support vector machines, XGB: extreme gradient boosting.",
         booktabs = TRUE, longtable = TRUE, linesep = "",
         escape = FALSE) %>% 
   kable_minimal(font_size = 8.5)  %>%
@@ -523,7 +543,7 @@ Here we present 7 case studies, starting with two exemplars of the pattern evide
 
 ### Exemplars
 
-For the `503_wind` data set, SRL outperformed all other methods in terms of test R-squared and
+The first case study is the \texttt{503\_wind} data set, for which the PMLB goal is to predict daily average wind speed at a weather station in Malin Head, Ireland, based on date and the wind speeds recorded by 11 weather stations in the Republic of Ireland in the years 1961-1978 [@winddata]. This data set has 6574 observations, and is further summarized in Table A2. We found that the SRL outperformed all other methods in terms of test R-squared and
 test RMSE with a notably faster run time than the random forest, SVM, and to a lesser extent neural
 network methods. Results for the `503_wind` data set are provided in Table 4. In addition to SRL being 
 the best performer, it also produces parameter estimates which are interpretable. In Figure 4, we 
@@ -585,12 +605,12 @@ sparseR::effect_plot(srlModel, coef_name = "year",
 par(mfrow = c(1, 1))
 ```
 
-For the `hungarian` data set, SRL was the fourth best performing model in terms
+The second case study is the \texttt{hungarian} data set, which consists of a subset of patients undergoing catheterization at the Hungarian Institute of Cardiology in Budapest between 1983 and 1987 [@hungariandata]. The PMLB prediction goal is to predict the presence of heart disease based on a set of 14 variables (summarized in Table A3). SRL was the fourth best performing model in terms
 of AUC; however, the performance of the top four models was extremely close 
 with each having an AUC within 0.032 of one another. Results for the `hungarian` 
 data set are provided in Table 5. While SRL did not outperform random forest for this data set, it does provide
 interpretable parameter estimates relative to random forest for only a marginal
-reduction in performance. In Figure 5, we present effect of two types of
+reduction in performance. In Figure 5, we present effect for two types of
 significant nonlinear relationships found by SRL in the `hungarian` data: an
 interaction effect and a quadratic effect.
 
@@ -644,9 +664,9 @@ par(mfrow = c(1, 1))
 
 ### SRL underperforming RF 
 
-In this section we delve more deeply into examples where SRL appears to be performing worse than alternative methods (case studies highlighted in Figure 3 right of the 45-degree line). 
+In this section we delve more deeply into examples where SRL appears to be performing worse than alternative methods (case studies highlighted in Figure 3 right of the 45-degree line); these data sets are named \texttt{analcatdata\_apnea1}, \texttt{analcatdata\_apnea2}, \texttt{analcatdata\_boxing1}, and \texttt{parity5+5}. Descriptive statistics for all of the variables included in these data sets are shown in Tables A4 and A5. The apnea-related data sets are set up as regression tasks (numeric outcomes) by the PMLB, and are originally described in @apnea. The other data sets, \texttt{analcatdata\_boxing1} and \texttt{parity5+5}, are binary classification tasks, but we were unable to trace them to their original sources.
 
-For the sleep apnea data sets `analcatdata_apnea1` and `analcatdata_apnea2`, SRL, lasso, and SVM performed considerably worse in terms of test and cross-validated $R^2$ compared to random forests and XGboost (Table 6). Descriptive statistics for all of the variables included in these data sets are shown in Table S1, and are originally described in @apnea. 
+For the sleep apnea data sets `analcatdata_apnea1` and `analcatdata_apnea2`, SRL, lasso, and SVM performed considerably worse in terms of test and cross-validated $R^2$ compared to random forests and XGboost (Table 6). 
 
 ```{r tab06, echo = FALSE}
 results_cont$results |> 
@@ -681,9 +701,9 @@ hist(bn2$x.t, main = "Normalized Target in 556_analcatdata_apnea2", xlab = "", b
 hist(bn1$x.t, main = "Normalized Target in 557_analcatdata_apnea1", xlab = "", breaks = 20)
 ```
 
-Upon further inspection, we noticed that the `sparseR` package by default removes interactions or other terms with near-zero variance via the `recipes` package [@caret;@recipes], which in this case removed all of the candidate interaction features from the model prior to the supervised part of the algorithm. By adding the argument `filter = "zv"`, only zero-variance variables are removed, and therefore any interactions with variance are retained. The code for applying this solution and its results are shown in the Appendix. Once this is implemented for the `analcatdata_apnea2` data set, the SRL achieves a CV-based R-square of 0.91, and a compact model (within 1 standard error of the RMSE of the best model) achieves a CV-based R-square of 0.88. Coefficients from the latter model and their marginal false discovery rates [@breheny] can be viewed in the Appendix as well. Briefly, we can interpret the model as follows: observations with `Automatic` $\in \{0,3\}$, or those where `Scorer_1` $\in \{0,3\}$ saw higher values of the target variable. If `Automatic`=0 and `Scorer_1`=0, there is a multiplicative modest increase in the target, but if both variables are equal to 3, the target jumps up to the extremely high tail of the distribution, increasing by over 13,000 on average. These results are practically identical for the `analcatdata_apnea1` data set.
+Upon further inspection, we noticed that the `sparseR` package by default removes interactions or other terms with near-zero variance via the `recipes` package [@caret;@recipes], which in this case removed all of the candidate interaction features from the model prior to the supervised part of the algorithm. By adding the argument `filter = "zv"`, only zero-variance variables are removed, and therefore any interactions with variance are retained. The code for applying this solution and its results are shown in the Appendix. Once this is implemented for the `analcatdata_apnea2` data set, the SRL achieves a CV-based R-square of 0.91, and a compact model (within 1 standard error of the RMSE of the best model) achieves a CV-based R-square of 0.88. Coefficients from the latter model and their marginal false discovery rates [@breheny] can be viewed in the Appendix as well. Briefly, we can interpret the model as follows: observations with `Automatic` $\in \{0,3\}$, or those where `Scorer_1` $\in \{0,3\}$ were associated with higher values of the target variable. If `Automatic`=0 and `Scorer_1`=0, there is a multiplicative modest increase in the target, but if both variables are equal to 3, the target jumps up to the extremely high tail of the distribution, increasing by over 13,000 on average. These results are practically identical for the `analcatdata_apnea1` data set.
 
-We also noted two data sets where the SRL underperformed alternative methods in predicting a binary outcome: `analcatdata_boxing1` and `parity5+5`. These results are summarized in Table 7.
+For the \texttt{analcatdata\_boxing1} and \texttt{parity5+5} data sets, results are summarized in Table 7. The \texttt{analcatdata\_boxing1} data set contains 120 observations and only three variables: `Official` (binary), `Round` (integer from 1-12), and the target. Due to the small sample size, we repeated the train-test split many times and noticed that while there was substantial variability in the test AUC, the SRL still performed worse than the random forest method. We suspected that the difference is due to a nonlinear relationship between `Round` and the target. By default, `sparseR` only looks for interactions and main effects, but it is readily extendible to search for polynomials as well (increasing skepticism for higher-order polynomials to prefer models with lower order terms; see @srlpaper and @peterson2019ranked). Here we can set `poly = 7` to look for up to 7 orthogonal polynomials in the numeric `Round` variable. The results for all three models are shown in Figure 7. 
 
 ```{r tab07}
 results_cat$results |> 
@@ -700,8 +720,6 @@ results_cat$results |>
   kable_minimal(full_width = FALSE) |>
   group_rows(index = c("analcatdata_boxing1" = 6, "parity5+5" = 6))
 ```
-
-The `analcatdata_boxing1` data set contains 120 observations and only three variables: `Official` (binary), `Round` (integer from 1-12), and the target. Due to the small sample size, we repeated the train-test split many times and noticed that while there was substantial variability in the test AUC, the SRL still performed worse than the random forest method. We suspected that the difference is due to a nonlinear relationship between `Round` and the target. By default, `sparseR` only looks for interactions and main effects, but it is readily extendible to search for polynomials as well (increasing skepticism for higher-order polynomials to prefer models with lower order terms; see @srlpaper and @peterson2019ranked). Here we can set `poly = 7` to look for up to 7 orthogonal polynomials in the numeric `Round` variable. The results for all three models are shown in Figure 7. 
 
 ```{r fig07, fig.cap="Distribution of test-set area under the receiver-operator curve (AUC) for random forests (RF, right), SRL (default, middle), and SRL with up to 7-order polynomials selected (right) for 50 different train/test splits for the \\texttt{analcatdata\\_boxing1} data set.", message= FALSE, fig.height=4, fig.width = 6, out.height = "3in", cache = TRUE}
 df <- results_cat$dfListCat$analcatdata_boxing1
@@ -749,7 +767,7 @@ abline(h = 0.5, col = "lightgrey")
 points(1:3, colMeans(aucs), col = 3, pch = 20, cex = 2)
 ```
 
-The `parity5+5` data set consists of 1124 observations, 10 binary predictors and a single binary target variable. It seems to us to be designed to showcase a scenario where transparent modeling methods are set up for failure. The target variable for this data set uses the nonlinear parity function based on a random subset of size 5 of the features. In this case, we used the built-in variable importance metrics for the random forest to discover the subset of "important" features were the second, third, fourth, sixth, and eighth features. We could then confirm the importance of these variables by summing these binary features and recognizing that the outcome was always 1 when this subset sum was even, and always 0 otherwise. Finally, we note that adding this summation as a candidate feature to SRL and adding polynomial terms to `sparseR` does improve the model fit considerably, but as this requires a hybrid approach (i.e. it blends information from random forests and SRL), it does not provide a fair comparison of our method to black-box methods and we do not describe these results. 
+The `parity5+5` data set consists of 1124 observations, 10 binary predictors and a single binary target variable. It seems to us to be designed to showcase a scenario where transparent modeling methods are set up for failure. The target variable for this data set uses the nonlinear parity function based on a random subset of size 5 of the features. In this case, we used the built-in variable importance metrics for the random forest to discover the subset of "important" features were the second, third, fourth, sixth, and eighth features. We could then confirm the importance of these variables by summing these binary features and recognizing that the outcome was always 1 when this subset sum was even, and always 0 otherwise. Finally, we note that adding this summation as a candidate feature to SRL and adding polynomial terms to `sparseR` does improve the model fit considerably, but as this modification requires a hybrid approach (i.e. it blends information from random forests and SRL), it does not provide a fair comparison of our method to black-box methods and we do not describe these results. 
 
 ```{r parity, warning=FALSE, eval = FALSE}
 df <- results_cat$dfListCat$`parity5+5`
@@ -792,14 +810,22 @@ effect_plot(srlModel, "bit_sum")
 
 We are not the first to suggest that transparent modeling methods perform comparably to black-box methods; @mlvslr found that when aggregating across biomedical data sets from 71 real studies, logistic regression performed on average exactly the same as black-box alternatives. 
 
-Data sets are growing increasingly large and diverse, and the subset of data set examples we explored in the PMLB, while larger than any previous study comparing such methods, is limited in generalizability to data sets with similar outcomes, numbers of features, signal-to-noise ratios, and variable distributions. In particular, we cannot generalize these findings to especially high-dimensional data sets ($p > 40$), or massive data sets ($n > 10,000$ or $np > 100,000$) as these were not included in our analysis. This comparison and extension would be welcome future work, as black-box models are said to be data hungry, performing best in these massive data settings [@datahungry]. However, this extension would require improved scalability of various methods as currently implemented. Another limitation to our study is the fact that the PMLB database has sparse metadata available for its data sets, and we were unable to trace many of the data sets back to their original sources.  
+Data sets are growing increasingly large and diverse, and the subset of data set examples we explored in the PMLB, while larger than any previous study comparing such methods, is limited in generalizability to data sets with similar outcomes, numbers of features, signal-to-noise ratios, and variable distributions. In particular, we cannot generalize these findings to especially high-dimensional data sets ($p > 40$), or massive data sets ($n > 10,000$ or $np > 100,000$) as these were not included in our analysis. This comparison and extension would be welcome future work, as black-box models are said to be data hungry, performing best in these massive data settings [@datahungry]. However, this extension would require improved scalability of various methods (including the SRL) as currently implemented. Another limitation to our study is the fact that the PMLB database has sparse metadata available for its data sets, and we were unable to trace many of the data sets back to their original sources.
 
 Given currently available methods and software, the SRL (and lasso) are less-readily applied to quantitative outcomes whose distributions involve a high degree of non-normality. In such cases, random forests and other robust algorithms may outperform our transparent ones. However, robust transparent modeling algorithms might also be considered in such settings such as robust regression or quantile regression. In our example, we found that a simple tweak to the defaults in the SRL yielded a model on-par with black-box modeling, but we suspect this fix may only apply to data sets with large signal-to-noise ratios; often a predictor capable of delineating different outcome modes is not available.  
 
 We did not investigate the implementation of stacking or other ensemble-based approaches [@stacking;@ensembles]. Under our definition of transparency, such approaches are not transparent. Therefore, if a transparent model fits the data best, it will improve the performance of black-box ensembles, but at a high cost of reduced interpretability. Still, in practice it is advisable to fit such an ensemble and compare its performance to transparent methods alone. One can compare the relative weight of transparent methods against black-box alternatives to map the data-set-specific tradeoff between predictive accuracy and transparency, and then make decisions regarding whether an observed improvement in performance (if it exists) is worth the opacity and its potential issues regarding trust, fairness, stability, etc. 
 
-# Conclusion
+\textcolor{black}{
+In our paper, we have considered SRL and the lasso as two techniques that can be used to produce transparent models. However, numerous algorithms and methods are available that are designed to achieve the same objective. As stated in the introduction, we define transparent models as traditional statistical models expressed in terms of a linear combination of a maximally parsimonious set of meaningful features. Such models are often developed by initially formulating a general parametric model that includes all potential candidate variables, along with any derived variables (e.g., transformed variables, polynomials, interactions) that may seem plausible a priori. A variable selection algorithm is then applied to reduce the complexity of the model and arrive at an interpretable final model that better adheres to the principle of Occam’s Razor. }
 
-Our transparent algorithms sometimes predict better than black-box counterparts and most of the time perform comparably. We encourage modelers to always at least consider a transparent model event in applications where prediction is the main objective. 
+\textcolor{black}{Two common statistical approaches to variable selection are based on optimizing a penalized likelihood measure and optimizing an information criterion. SRL and the lasso are both penalized likelihood methods. Other such methods include the elastic net, the adaptive lasso, the fused lasso, and the relaxed lasso. Information criterion approaches involve using a penalized measure of model fit, such as the Akaike information criterion or the Bayesian information criterion, in conjunction with a search algorithm that evaluates all or some of the fitted models in the candidate collection using the criterion values. Best subsets selection is an exact algorithm based on an exhaustive search and yields a final model that is guaranteed to optimize the criterion. Heuristic algorithms exchange exactness for computational efficiency and/or simplicity, and may not necessarily identify the globally optimal model, but will hopefully yield a model that is nearly optimal (i.e., has a criterion value close to the global minimum/maximum). Classical stage wise algorithms, such as forward selection and backward elimination, are examples of heuristic algorithms.}
 
+\textcolor{black}{
+In addition to techniques based on penalized likelihood and information criteria, many other algorithms and techniques that facilitate transparent modeling have been proposed, developed, and studied. For instance, decision trees, including classification trees and regression trees, can often yield a transparent model through a sequence of well-defined, hierarchical variable splits. Another important paradigm is the Logical Analysis of Data (LAD)} [@Chikalov2013;@Boros1997;@Bruni2015] \textcolor{black}{, a methodological framework designed to extract or discover knowledge from data in a logical form. LAD combines concepts from optimization, combinatorics, and Boolean functions for data analysis.}
 
+Similarly, due to the bakeoff nature of this experiment, we only compared algorithms using default values chosen by existing software packages, namely those used by \texttt{caret} for the black-box approaches. \textcolor{black}{An important question is whether the algorithms we use for comparison can be considered to represent the state of the art. We chose the most popular packages openly available in R via the CRAN website for fitting neural networks (\texttt{nnet}), random forests (\texttt{randomForest}), support vector machines (\texttt{kernlab}), and XG-boosting (\texttt{xgboost}); at the time of writing these packages each had (by far) more cumulative downloads from CRAN than other packages within each model class. These packages are undoubtedly popular due to their accessibility,  generalizability to new problems, and historical precedence, making them good candidates for our experiment. However, more recently developed algorithms in each model class, including those not yet openly available via R or CRAN, are likely to outperform existing popular packages. Therefore, we do not claim our models will necessarily outperform or compete well to the state of the art; rather we expect our method will compete admirably when compared to the most popular modeling alternatives.} Future comparisons of \textcolor{black}{more recently developed, state-of-the-art} algorithms\textcolor{black}{, as well as models} using more involved tuning strategies, would be welcome.
+
+\textcolor{black}{In this paper, we focused on comparisons between algorithms "in-the-wild" (i.e. on real data sets), where the true data generating mechanisms are naturally unknown. This focus builds substantively atop our previous work, and showcases concretely how transparent methods deserve more attention and popularity. We plan to conduct a similar type of analysis using our time series SRL extension on a large, diverse collection of time series. Still, there is ample room for future research \textit{in silica} to investigate the SRL's performance under varied scenarios. Specifically, the robustness of the SRL to extreme outliers, noise intensity, the presence of gaps in the distributions of covariates, and highly irregular covariate correlation structures may cause issues that deserve additional attention in future work. Nevertheless, we have shown herein that the SRL can compete admirably despite the presence of such issues in real data sets, at least for the purposes of prediction.}
+
+In conclusion, our transparent algorithms sometimes predict better than black-box counterparts and most of the time perform comparably. We encourage modelers to always at least consider a transparent \textcolor{black}{modeling approach} even in applications where prediction is the main objective. 
